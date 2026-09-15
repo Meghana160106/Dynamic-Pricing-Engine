@@ -8,21 +8,11 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, r2_score
 
-
-# =========================================================
-# PAGE CONFIGURATION
-# =========================================================
-
 st.set_page_config(
     page_title="Dynamic Pricing Engine",
     page_icon="💰",
     layout="wide"
 )
-
-
-# =========================================================
-# TITLE
-# =========================================================
 
 st.title("💰 Dynamic Pricing Engine")
 
@@ -33,11 +23,6 @@ This system analyzes e-commerce data, demand, inventory,
 competitor pricing and discounts to recommend an optimized
 selling price.
 """)
-
-
-# =========================================================
-# DEMO DATA
-# =========================================================
 
 def generate_demo_data(n=1500):
 
@@ -55,11 +40,6 @@ def generate_demo_data(n=1500):
 
     return df
 
-
-# =========================================================
-# FIND COLUMN AUTOMATICALLY
-# =========================================================
-
 def find_column(df, names):
 
     column_map = {}
@@ -72,7 +52,6 @@ def find_column(df, names):
 
         column_map[key] = column
 
-    # Exact match
     for name in names:
 
         key = name.lower()
@@ -82,7 +61,6 @@ def find_column(df, names):
         if key in column_map:
             return column_map[key]
 
-    # Partial match
     for column in df.columns:
 
         column_name = str(column).lower()
@@ -95,22 +73,12 @@ def find_column(df, names):
 
     return None
 
-
-# =========================================================
-# SIDEBAR
-# =========================================================
-
 st.sidebar.header("📂 Dataset Upload")
 
 uploaded_file = st.sidebar.file_uploader(
     "Upload CSV or ZIP",
     type=["csv", "zip"]
 )
-
-
-# =========================================================
-# LOAD DATASET
-# =========================================================
 
 data = None
 
@@ -126,13 +94,9 @@ else:
 
     try:
 
-        # ---------------- CSV ----------------
-
         if uploaded_file.name.lower().endswith(".csv"):
 
             data = pd.read_csv(uploaded_file)
-
-        # ---------------- ZIP ----------------
 
         elif uploaded_file.name.lower().endswith(".zip"):
 
@@ -176,11 +140,6 @@ else:
 
         st.stop()
 
-
-# =========================================================
-# BASIC DATA CLEANING
-# =========================================================
-
 data = data.copy()
 
 data.columns = [
@@ -188,13 +147,11 @@ data.columns = [
     for column in data.columns
 ]
 
-# Remove completely empty rows
 data = data.dropna(
     axis=0,
     how="all"
 )
 
-# Remove completely empty columns
 data = data.dropna(
     axis=1,
     how="all"
@@ -203,11 +160,6 @@ data = data.dropna(
 data = data.reset_index(
     drop=True
 )
-
-
-# =========================================================
-# AUTOMATIC COLUMN DETECTION
-# =========================================================
 
 price_col = find_column(
     data,
@@ -261,11 +213,6 @@ discount_col = find_column(
     ]
 )
 
-
-# =========================================================
-# CONVERT IMPORTANT COLUMNS TO NUMERIC
-# =========================================================
-
 detected_columns = [
     price_col,
     competitor_col,
@@ -283,12 +230,6 @@ for column in detected_columns:
             errors="coerce"
         )
 
-
-# =========================================================
-# CREATE MISSING COLUMNS
-# =========================================================
-
-# Price
 if price_col is None:
 
     numeric_columns = data.select_dtypes(
@@ -305,8 +246,6 @@ if price_col is None:
 
         price_col = "Base_Price"
 
-
-# Sales / Demand
 if sales_col is None:
 
     np.random.seed(42)
@@ -319,8 +258,6 @@ if sales_col is None:
 
     sales_col = "Sales"
 
-
-# Inventory
 if inventory_col is None:
 
     np.random.seed(10)
@@ -333,8 +270,6 @@ if inventory_col is None:
 
     inventory_col = "Inventory"
 
-
-# Competitor price
 if competitor_col is None:
 
     price_values = pd.to_numeric(
@@ -365,18 +300,11 @@ if competitor_col is None:
 
     competitor_col = "Competitor_Price"
 
-
-# Discount
 if discount_col is None:
 
     data["Discount"] = 10.0
 
     discount_col = "Discount"
-
-
-# =========================================================
-# CLEAN IMPORTANT NUMERIC DATA
-# =========================================================
 
 important_columns = [
     price_col,
@@ -393,8 +321,6 @@ for column in important_columns:
         errors="coerce"
     )
 
-
-# Fill missing values with median
 for column in important_columns:
 
     median_value = data[column].median()
@@ -407,8 +333,6 @@ for column in important_columns:
         median_value
     )
 
-
-# Remove infinite values
 data = data.replace(
     [np.inf, -np.inf],
     np.nan
@@ -419,11 +343,6 @@ data = data.fillna(0)
 data = data.reset_index(
     drop=True
 )
-
-
-# =========================================================
-# ENSURE POSITIVE VALUES
-# =========================================================
 
 data[price_col] = data[price_col].clip(
     lower=1
@@ -454,11 +373,6 @@ data[discount_col] = data[
     upper=100
 )
 
-
-# =========================================================
-# DATASET OVERVIEW
-# =========================================================
-
 st.subheader("📊 Dataset Overview")
 
 col1, col2, col3, col4 = st.columns(4)
@@ -483,11 +397,6 @@ col4.metric(
     f"{data[inventory_col].mean():,.0f}"
 )
 
-
-# =========================================================
-# DATA PREVIEW
-# =========================================================
-
 with st.expander("🔍 View Dataset"):
 
     st.dataframe(
@@ -495,11 +404,6 @@ with st.expander("🔍 View Dataset"):
         use_container_width=True,
         hide_index=True
     )
-
-
-# =========================================================
-# MACHINE LEARNING MODEL
-# =========================================================
 
 features = [
     price_col,
@@ -512,8 +416,6 @@ X = data[features].copy()
 
 y = data[sales_col].copy()
 
-
-# Make sure everything is numeric
 X = X.apply(
     pd.to_numeric,
     errors="coerce"
@@ -531,11 +433,6 @@ y = pd.to_numeric(
 y = y.fillna(
     y.median()
 )
-
-
-# =========================================================
-# TRAIN MODEL
-# =========================================================
 
 model = None
 mae = 0
@@ -581,11 +478,6 @@ if len(data) >= 20:
 
         model = None
 
-
-# =========================================================
-# MODEL PERFORMANCE
-# =========================================================
-
 st.subheader("🤖 Demand Prediction Model")
 
 m1, m2 = st.columns(2)
@@ -600,17 +492,10 @@ m2.metric(
     f"{r2:.3f}"
 )
 
-
-# =========================================================
-# PRICING SIMULATOR
-# =========================================================
-
 st.sidebar.divider()
 
 st.sidebar.header("💰 Pricing Simulator")
 
-
-# Safe medians
 price_median = data[price_col].median()
 
 competitor_median = data[
@@ -624,7 +509,6 @@ inventory_median = data[
 demand_median = data[
     sales_col
 ].median()
-
 
 if pd.isna(price_median):
 
@@ -641,9 +525,6 @@ if pd.isna(inventory_median):
 if pd.isna(demand_median):
 
     demand_median = 100
-
-
-# Sidebar inputs
 
 base_price = st.sidebar.number_input(
     "Base Price",
@@ -696,11 +577,6 @@ discount = st.sidebar.slider(
     value=10.0
 )
 
-
-# =========================================================
-# DYNAMIC PRICING CALCULATION
-# =========================================================
-
 maximum_demand = max(
     float(
         data[sales_col].max()
@@ -715,13 +591,11 @@ maximum_inventory = max(
     1
 )
 
-
 demand_ratio = min(
     demand /
     maximum_demand,
     1
 )
-
 
 inventory_pressure = max(
     0,
@@ -729,7 +603,6 @@ inventory_pressure = max(
     inventory /
     maximum_inventory
 )
-
 
 competitor_factor = (
     competitor_price /
@@ -739,7 +612,6 @@ competitor_factor = (
     )
 )
 
-
 multiplier = (
     0.85
     + demand_ratio * 0.30
@@ -747,7 +619,6 @@ multiplier = (
     + (competitor_factor - 1) * 0.10
     - (discount / 100) * 0.10
 )
-
 
 multiplier = float(
     np.clip(
@@ -757,22 +628,15 @@ multiplier = float(
     )
 )
 
-
 recommended_price = (
     base_price *
     multiplier
 )
 
-
 estimated_revenue = (
     recommended_price *
     demand
 )
-
-
-# =========================================================
-# DEMAND LEVEL
-# =========================================================
 
 if demand_ratio >= 0.70:
 
@@ -785,11 +649,6 @@ elif demand_ratio >= 0.40:
 else:
 
     demand_level = "LOW"
-
-
-# =========================================================
-# RESULTS
-# =========================================================
 
 st.subheader(
     "💰 Dynamic Pricing Recommendation"
@@ -817,11 +676,6 @@ r4.metric(
     f"₹{estimated_revenue:,.0f}"
 )
 
-
-# =========================================================
-# PRICE COMPARISON
-# =========================================================
-
 st.subheader(
     "📈 Price Comparison"
 )
@@ -845,11 +699,6 @@ st.bar_chart(
     price_chart
 )
 
-
-# =========================================================
-# DEMAND ANALYSIS
-# =========================================================
-
 st.subheader(
     "📊 Demand Analysis"
 )
@@ -862,11 +711,6 @@ st.line_chart(
     demand_chart
 )
 
-
-# =========================================================
-# INVENTORY ANALYSIS
-# =========================================================
-
 st.subheader(
     "📦 Inventory Analysis"
 )
@@ -878,11 +722,6 @@ inventory_chart = data[
 st.area_chart(
     inventory_chart
 )
-
-
-# =========================================================
-# BUSINESS RECOMMENDATION
-# =========================================================
 
 st.subheader(
     "💡 Business Recommendation"
@@ -910,11 +749,6 @@ else:
         "or increasing promotional activity."
     )
 
-
-# =========================================================
-# FEATURE IMPORTANCE
-# =========================================================
-
 if model is not None:
 
     st.subheader(
@@ -939,11 +773,6 @@ if model is not None:
         )
     )
 
-
-# =========================================================
-# DOWNLOAD RESULTS
-# =========================================================
-
 result = data.copy()
 
 result["Recommended_Price"] = (
@@ -962,11 +791,9 @@ result["Estimated_Revenue"] = (
     estimated_revenue
 )
 
-
 csv_output = result.to_csv(
     index=False
 )
-
 
 st.download_button(
     label="⬇️ Download Pricing Results",
@@ -974,11 +801,6 @@ st.download_button(
     file_name="dynamic_pricing_results.csv",
     mime="text/csv"
 )
-
-
-# =========================================================
-# FOOTER
-# =========================================================
 
 st.divider()
 
