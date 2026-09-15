@@ -1,4 +1,2 @@
-cd C:\\Users\\megha\\DynamicPricingEngine
-
-notepad README.md
+https://dynamic-pricing-engine-ibrfewcvamhjnwigepxnmx.streamlit.app/
 
